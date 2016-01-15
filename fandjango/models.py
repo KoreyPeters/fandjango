@@ -160,7 +160,7 @@ class User(models.Model):
         """
         profile = graph_data or self.graph.get('me')
 
-        self.facebook_username = profile.get('username')
+        self.facebook_username = profile.get('name')
         self.first_name = profile.get('first_name')
         self.middle_name = profile.get('middle_name')
         self.last_name = profile.get('last_name')
