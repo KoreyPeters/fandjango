@@ -2,8 +2,10 @@ from httplib import HTTPConnection
 from datetime import datetime, timedelta
 from urlparse import parse_qs
 
+from django.contrib.auth.models import BaseUserManager
 from django.db import models
 import jsonfield
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from fandjango.utils import cached_property as cached
@@ -33,6 +35,24 @@ class Facebook:
 
     oauth_token = None
     """A ``OAuthToken`` instance."""
+
+class FacebookUserManager(BaseUserManager):
+    def _create_user(self, facebook_id, is_staff, is_superuser, **extra_fields):
+        now = timezone.now()
+	if not facebook_id:
+	    raise ValueError('The facebook_id must be set')
+        user = self.model(facebook_id=facebook_id, is_staff=is_staff, is_superuser=is_superuser, 
+	        created_at=now)
+	user.save(using=self._db)
+	return user
+
+    def create_user(self, facebook_id):
+        return self._create_user(facebook_id, False, False)
+
+    def create_superuser(self, facebook_id, password=None):
+        return self._create_user(facebook_id, True, True)
+
+    
 
 class User(models.Model):
     """
@@ -81,6 +101,14 @@ class User(models.Model):
 
     extra_data = jsonfield.JSONField()
     """A ``JSONField`` object containig all additional facebookdata."""
+
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
+    USERNAME_FIELD = 'facebook_id'
+    REQUIRED_FIELDS = []
+
+    objects = FacebookUserManager()
 
     @property
     def full_name(self):
