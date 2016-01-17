@@ -200,14 +200,18 @@ class FacebookWebMiddleware(BaseMiddleware):
                     client_secret = FACEBOOK_APPLICATION_SECRET_KEY,
                     code = request.GET['code'],
                 )
-        
+
                 components = parse_qs(response)
                 
                 # Save new OAuth-token in DB
+                try:
+                    expiry = int(components['expires'][0])
+                except KeyError:
+                    expiry = 5184000
                 oauth_token, new_oauth_token = OAuthToken.objects.get_or_create(
                     token = components['access_token'][0],
                     issued_at = now(),
-                    expires_at = now() + timedelta(seconds = int(components['expires'][0]))
+                    expires_at = now() + timedelta(seconds = expiry)
                 )
 
             except GraphAPI.OAuthError:
@@ -295,3 +299,4 @@ class FacebookWebMiddleware(BaseMiddleware):
         response['P3P'] = 'CP="IDC CURa ADMa OUR IND PHY ONL COM STA"'
 
         return response
+
